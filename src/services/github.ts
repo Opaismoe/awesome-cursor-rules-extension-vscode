@@ -7,6 +7,33 @@ export class GithubService {
   private cache: Map<string, Template[]> = new Map();
   
   /**
+   * Parses a GitHub repository URL and extracts owner, repo name, and path
+   */
+  parseRepoUrl(repoUrl: string): { owner: string; repoName: string; path: string } {
+    // Remove GitHub URL prefix
+    const cleanUrl = repoUrl.replace('https://github.com/', '');
+    
+    // Check if URL has a path component (e.g., /tree/main/rules)
+    const treePattern = /\/tree\/[^\/]+\/(.+)$/;
+    const treeMatch = cleanUrl.match(treePattern);
+    
+    let repoPath = '';
+    let repoWithoutPath = cleanUrl;
+    
+    if (treeMatch) {
+      // Extract the path after /tree/branch/
+      repoPath = treeMatch[1];
+      // Remove the /tree/branch/path part from the repo
+      repoWithoutPath = cleanUrl.replace(/\/tree\/[^\/]+\/.+$/, '');
+    }
+    
+    // Split owner and repo name
+    const [owner, repoName] = repoWithoutPath.split('/');
+    
+    return { owner, repoName, path: repoPath };
+  }
+  
+  /**
    * Fetches templates from a GitHub repository
    */
   async fetchTemplates(repo: string): Promise<Template[]> {
@@ -15,13 +42,14 @@ export class GithubService {
     }
     
     try {
-      // Parse repo path
-      const [owner, repoName] = repo.replace('https://github.com/', '').split('/');
+      // Parse repo URL to extract owner, repo name, and path
+      const { owner, repoName, path: repoPath } = this.parseRepoUrl(repo);
+      
+      // Build the API URL with path if provided
+      const apiUrl = `https://api.github.com/repos/${owner}/${repoName}/contents${repoPath ? '/' + repoPath : ''}`;
       
       // Fetch repository contents
-      const response = await axios.get(
-        `https://api.github.com/repos/${owner}/${repoName}/contents`
-      );
+      const response = await axios.get(apiUrl);
       
       const templates: Template[] = [];
       
@@ -41,6 +69,11 @@ export class GithubService {
           
           // Simple metadata extraction - could be enhanced
           if (typeof content === 'string') {
+            const nameMatch = content.match(/name:\s*(.+)/i);
+            if (nameMatch) {
+              name = nameMatch[1].trim();
+            }
+            
             const descMatch = content.match(/description:\s*(.+)/i);
             if (descMatch) {
               description = descMatch[1].trim();

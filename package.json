@@ -36,7 +36,7 @@
         "cursorRules.templateSources": {
           "type": "array",
           "default": [
-            "https://github.com/PatrickJS/awesome-cursorrules"
+            "https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules"
           ],
           "description": "GitHub repositories to fetch rule templates from"
         },
@@ -64,8 +64,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.7",
-    "node-fetch": "^3.3.2"
+    "axios": "^1.6.7"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
