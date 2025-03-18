@@ -5,9 +5,10 @@ module.exports = {
   mode: 'production',
   entry: './src/extension.ts',
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'out'),
     filename: 'extension.js',
-    libraryTarget: 'commonjs2'
+    libraryTarget: 'commonjs2',
+    devtoolModuleFilenameTemplate: '../[resource-path]'
   },
   externals: {
     vscode: 'commonjs vscode'
@@ -22,14 +23,22 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'ts-loader'
+            loader: 'ts-loader',
+            options: {
+              compilerOptions: {
+                "module": "es6" // Ensure ES6 modules are used
+              }
+            }
           }
         ]
       }
     ]
   },
-  devtool: 'nosources-source-map',
+  devtool: 'source-map',
   infrastructureLogging: {
     level: "log",
+  },
+  optimization: {
+    minimize: true
   }
 }; 

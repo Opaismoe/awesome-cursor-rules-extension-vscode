@@ -1,15 +1,14 @@
 .vscode/**
 .vscode-test/**
-src/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
-**/*.ts
 .github/**
 images/**
+!images/icon.png
 media/**
 templates/**
 node_modules/**
@@ -28,4 +27,9 @@ webpack.config.js
 .gitlab-ci.yml
 .circleci/**
 jest.config.js
-**/*.vsix 
+**/*.vsix
+src/**
+!src/commands/**
+!src/services/**
+!src/views/**
+!src/types.ts 

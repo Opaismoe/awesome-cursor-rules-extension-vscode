@@ -2,7 +2,7 @@
   "name": "cursor-rules-extension",
   "displayName": "Cursor Rules Manager",
   "description": "Quickly create and manage CursorRules for the Cursor editor",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "publisher": "Opaismoe",
   "repository": {
     "type": "git",
@@ -36,7 +36,8 @@
     "onCommand:cursor-rules.create",
     "onCommand:cursor-rules.select",
     "onCommand:cursor-rules.edit",
-    "onCommand:cursor-rules.selectGithubFast"
+    "onCommand:cursor-rules.selectGithubFast",
+    "onCommand:cursor-rules.saveRule"
   ],
   "main": "./out/extension.js",
   "contributes": {

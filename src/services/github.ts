@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { Template, GitHubDirectory } from '../types';
 import * as path from 'path';
 
@@ -173,22 +173,23 @@ export class GithubService {
       return directories;
     } catch (error) {
       console.error('Error fetching directories:', error);
-      if (axios.isAxiosError(error) && error.response?.status === 403) {
-        console.error('Axios error details:', {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          responseData: error.response?.data
-        });
-        
-        // Set the rate limited flag
-        this.isRateLimited = true;
-        
-        // Use mock data as fallback
-        vscode.window.showWarningMessage('GitHub API rate limit exceeded. Using cached templates. Consider adding a GitHub token in settings.');
-        return this.generateMockTemplates();
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status === 403) {
+          console.error('Axios error details:', {
+            status: axiosError.response?.status,
+            statusText: axiosError.response?.statusText,
+            responseData: axiosError.response?.data
+          });
+          
+          this.isRateLimited = true;
+          vscode.window.showWarningMessage('GitHub API rate limit exceeded. Using cached templates. Consider adding a GitHub token in settings.');
+          return this.generateMockTemplates();
+        }
       }
       
-      vscode.window.showErrorMessage(`Failed to fetch template directories: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Failed to fetch template directories: ${errorMessage}`);
       return [];
     }
   }
