@@ -9,44 +9,28 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:cursor-rules.create",
-    "onCommand:cursor-rules.select",
-    "onCommand:cursor-rules.edit",
-    "onCommand:cursor-rules.selectGithub",
-    "onCommand:cursor-rules.selectGithubCached",
-    "onCommand:cursor-rules.resetGithubRateLimit"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "cursor-rules.create",
-        "title": "Cursor Rules: Create New Rule"
+        "title": "ACR: Create New Rule"
       },
       {
         "command": "cursor-rules.select",
-        "title": "Cursor Rules: Select from Templates"
+        "title": "ACR: Select from Templates"
       },
       {
         "command": "cursor-rules.edit",
-        "title": "Cursor Rules: Edit Existing Rule"
+        "title": "ACR: Edit Existing Rule"
       },
       {
-        "command": "cursor-rules.selectGithub",
-        "title": "Cursor Rules: Select from GitHub Templates"
-      },
-      {
-        "command": "cursor-rules.selectGithubCached",
-        "title": "Cursor Rules: Select GitHub Templates (Faster)"
-      },
-      {
-        "command": "cursor-rules.resetGithubRateLimit",
-        "title": "Cursor Rules: Reset GitHub Rate Limit Status"
+        "command": "cursor-rules.selectGithubFast",
+        "title": "ACR: Select from Awesome Cursor Rules Repository"
       }
     ],
     "configuration": {
-      "title": "Cursor Rules",
+      "title": "Awesome Cursor Rules",
       "properties": {
         "cursorRules.templateSources": {
           "type": "array",

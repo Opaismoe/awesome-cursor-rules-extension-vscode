@@ -42,20 +42,24 @@ export async function selectRuleCommand(context: vscode.ExtensionContext) {
         try {
           // For now, use the first source
           const source = sources[0];
-          console.log(`Fetching templates from: ${source}`);
+          console.log(`Fetching directories from: ${source}`);
           
           const githubService = new GithubService();
-          const onlineCategories = await githubService.getTemplatesByCategory(source);
-          console.log(`Loaded ${Array.from(onlineCategories.keys()).length} GitHub template categories`);
+          // Use the directory-based approach
+          const directories = await githubService.fetchDirectories(source);
+          console.log(`Loaded ${directories.length} GitHub directories`);
           
-          // Merge GitHub templates with local templates
-          for (const [category, templates] of onlineCategories.entries()) {
-            if (mergedCategories.has(category)) {
-              console.log(`Merging GitHub category: ${category} with ${templates.length} templates`);
-              mergedCategories.get(category)!.push(...templates);
-            } else {
-              console.log(`Adding new GitHub category: ${category} with ${templates.length} templates`);
-              mergedCategories.set(category, templates);
+          // Process each directory to load its template
+          for (const dir of directories) {
+            const template = await githubService.fetchRuleFromDirectory(source, dir);
+            if (template) {
+              if (mergedCategories.has(template.category)) {
+                console.log(`Adding template to existing category: ${template.category}`);
+                mergedCategories.get(template.category)!.push(template);
+              } else {
+                console.log(`Creating new category: ${template.category} for template`);
+                mergedCategories.set(template.category, [template]);
+              }
             }
           }
         } catch (error) {

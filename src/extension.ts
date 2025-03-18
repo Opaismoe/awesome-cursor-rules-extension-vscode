@@ -38,70 +38,12 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Register a command to reset GitHub rate limit status
-  context.subscriptions.push(
-    vscode.commands.registerCommand('cursor-rules.resetGithubRateLimit', () => {
-      const githubService = new GithubService();
-      githubService.clearRateLimitStatus();
-      vscode.window.showInformationMessage('GitHub rate limit status has been reset. Try fetching templates again.');
-    })
-  );
-
   // Register a specific command for GitHub templates
   context.subscriptions.push(
-    vscode.commands.registerCommand('cursor-rules.selectGithub', async () => {
+    vscode.commands.registerCommand('cursor-rules.selectGithubFast', async () => {
       await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
-        title: 'Loading GitHub templates...',
-        cancellable: false
-      }, async (progress) => {
-        try {
-          const githubService = new GithubService();
-          const repoUrl = 'https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules';
-          
-          progress.report({ message: `Fetching templates from ${repoUrl}...` });
-          
-          // Get templates by category
-          const categories = await githubService.getTemplatesByCategory(repoUrl);
-          
-          if (categories.size === 0) {
-            vscode.window.showInformationMessage('No GitHub templates found');
-            return;
-          }
-          
-          // Show category quick pick
-          const categoryNames = Array.from(categories.keys());
-          const selectedCategory = await showCategoryQuickPick(categoryNames);
-          
-          if (!selectedCategory) {
-            return; // User cancelled
-          }
-          
-          // Show templates in selected category
-          const templates = categories.get(selectedCategory) || [];
-          const selectedTemplate = await showTemplateQuickPick(templates);
-          
-          if (!selectedTemplate) {
-            return; // User cancelled
-          }
-          
-          // Open the template in the editor
-          RuleEditorPanel.createOrShow(context.extensionUri, selectedTemplate);
-          
-        } catch (error) {
-          console.error('Error fetching GitHub templates:', error);
-          vscode.window.showErrorMessage(`Error loading GitHub templates: ${error}`);
-        }
-      });
-    })
-  );
-
-  // Register the cached GitHub templates command (two-step process)
-  context.subscriptions.push(
-    vscode.commands.registerCommand('cursor-rules.selectGithubCached', async () => {
-      await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: 'Loading GitHub directories...',
+        title: 'Loading GitHub templates (Fast Method)...',
         cancellable: false
       }, async (progress) => {
         try {

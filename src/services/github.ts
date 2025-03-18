@@ -4,7 +4,6 @@ import { Template, GitHubDirectory } from '../types';
 import * as path from 'path';
 
 export class GithubService {
-  private cache: Map<string, Template[]> = new Map();
   private directoriesCache: Map<string, GitHubDirectory[]> = new Map();
   private templateCache: Map<string, Template> = new Map();
   private isRateLimited = false;
@@ -28,10 +27,45 @@ export class GithubService {
     
     const token = this.getGitHubToken();
     if (token) {
+      // Use token auth instead of plain text
       headers['Authorization'] = `token ${token}`;
     }
     
     return headers;
+  }
+  
+  /**
+   * Parses a GitHub repository URL into its components
+   * @param repoUrl The URL to parse (e.g., 'https://github.com/owner/repo/tree/branch/path')
+   */
+  private parseRepoUrl(repoUrl: string): { owner: string; repoName: string; path?: string } {
+    // Sanitize and validate URL input
+    if (!repoUrl || typeof repoUrl !== 'string') {
+      throw new Error('Invalid repository URL');
+    }
+    
+    // Basic URL validation
+    if (!repoUrl.startsWith('https://github.com/')) {
+      throw new Error('URL must be a valid GitHub repository URL');
+    }
+    
+    // Match GitHub repository URL parts using RegExp with security checks
+    const match = /https:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/tree\/[^\/]+\/(.+))?/.exec(repoUrl);
+    
+    if (!match) {
+      throw new Error('Could not parse GitHub repository URL');
+    }
+    
+    const owner = match[1];
+    const repoName = match[2];
+    const path = match[3];
+    
+    // Additional validation
+    if (!owner || !repoName) {
+      throw new Error('Missing repository owner or name');
+    }
+    
+    return { owner, repoName, path };
   }
   
   /**
@@ -79,37 +113,16 @@ export class GithubService {
   }
   
   /**
-   * Parses a GitHub repository URL and extracts owner, repo name, and path
-   */
-  parseRepoUrl(repoUrl: string): { owner: string; repoName: string; path: string } {
-    // Remove GitHub URL prefix
-    const cleanUrl = repoUrl.replace('https://github.com/', '');
-    
-    // Check if URL has a path component (e.g., /tree/main/rules)
-    const treePattern = /\/tree\/[^\/]+\/(.+)$/;
-    const treeMatch = cleanUrl.match(treePattern);
-    
-    let repoPath = '';
-    let repoWithoutPath = cleanUrl;
-    
-    if (treeMatch) {
-      // Extract the path after /tree/branch/
-      repoPath = treeMatch[1];
-      // Remove the /tree/branch/path part from the repo
-      repoWithoutPath = cleanUrl.replace(/\/tree\/[^\/]+\/.+$/, '');
-    }
-    
-    // Split owner and repo name
-    const [owner, repoName] = repoWithoutPath.split('/');
-    
-    return { owner, repoName, path: repoPath };
-  }
-  
-  /**
    * Fetches only the directory listings from a GitHub repository path
    * This is faster than fetching all templates with their content
    */
   async fetchDirectories(repo: string): Promise<GitHubDirectory[]> {
+    // Validate input
+    if (!repo || typeof repo !== 'string') {
+      console.error('Invalid repository URL provided');
+      return [];
+    }
+    
     // Check if we're rate limited and use mock data if needed
     if (this.isRateLimited) {
       vscode.window.showWarningMessage('Using cached templates due to GitHub API rate limit. Consider adding a GitHub token in settings.');
@@ -125,16 +138,25 @@ export class GithubService {
       // Parse repo URL to extract owner, repo name, and path
       const { owner, repoName, path: repoPath } = this.parseRepoUrl(repo);
       
-      // Build the API URL with path if provided
-      const apiUrl = `https://api.github.com/repos/${owner}/${repoName}/contents${repoPath ? '/' + repoPath : ''}`;
+      // Build the API URL with path if provided - use encodeURIComponent for security
+      const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}/contents${repoPath ? '/' + encodeURIComponent(repoPath) : ''}`;
       console.log(`Fetching directories from GitHub API: ${apiUrl}`);
       
       // Fetch repository contents with authorization headers if available
-      const response = await axios.get(apiUrl, { headers: this.getHeaders() });
+      const response = await axios.get(apiUrl, { 
+        headers: this.getHeaders(),
+        timeout: 10000 // Set a reasonable timeout
+      });
+      
+      // Validate response data
+      if (!Array.isArray(response.data)) {
+        console.error('Invalid response data from GitHub API');
+        return [];
+      }
       
       // Filter only directories
       const directories = response.data
-        .filter((item: any) => item.type === 'dir')
+        .filter((item: any) => item && typeof item === 'object' && item.type === 'dir')
         .map((dir: any) => ({
           name: dir.name,
           path: dir.path,
@@ -166,7 +188,7 @@ export class GithubService {
         return this.generateMockTemplates();
       }
       
-      vscode.window.showErrorMessage(`Failed to fetch template directories: ${error}`);
+      vscode.window.showErrorMessage(`Failed to fetch template directories: ${error instanceof Error ? error.message : String(error)}`);
       return [];
     }
   }
@@ -176,6 +198,12 @@ export class GithubService {
    * This is called after the user selects a directory
    */
   async fetchRuleFromDirectory(repo: string, directory: GitHubDirectory): Promise<Template | undefined> {
+    // Input validation
+    if (!repo || !directory || typeof directory !== 'object') {
+      console.error('Invalid repository URL or directory');
+      return undefined;
+    }
+    
     // Check cache first using directory path as key
     const cacheKey = `${repo}/${directory.path}`;
     if (this.templateCache.has(cacheKey)) {
@@ -199,23 +227,48 @@ export class GithubService {
       // Parse repo URL to extract owner, repo name
       const { owner, repoName } = this.parseRepoUrl(repo);
       
-      // Build the API URL for the directory contents
-      const dirContentsUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${directory.path}`;
+      // Validate directory path
+      if (!directory.path) {
+        throw new Error('Directory path is missing');
+      }
+      
+      // Build the API URL for the directory contents - use encodeURIComponent for security
+      const dirContentsUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}/contents/${encodeURIComponent(directory.path)}`;
       console.log(`Fetching contents of directory: ${dirContentsUrl}`);
       
-      // Fetch directory contents
-      const dirResponse = await axios.get(dirContentsUrl, { headers: this.getHeaders() });
+      // Fetch directory contents with a timeout
+      const dirResponse = await axios.get(dirContentsUrl, { 
+        headers: this.getHeaders(),
+        timeout: 10000
+      });
+      
+      // Validate response data
+      if (!Array.isArray(dirResponse.data)) {
+        throw new Error('Invalid response from GitHub API');
+      }
       
       // Look for a README.md or .cursorrules file in the directory
       const templateFile = dirResponse.data.find((file: any) => 
-        file.type === 'file' && (file.name === 'README.md' || file.name.endsWith('.cursorrules'))
+        file && typeof file === 'object' && 
+        file.type === 'file' && 
+        (file.name === 'README.md' || file.name.endsWith('.cursorrules'))
       );
       
       if (templateFile) {
         console.log(`Found template file: ${templateFile.name}`);
         
-        // Fetch the file content
-        const contentResponse = await axios.get(templateFile.download_url, { headers: this.getHeaders() });
+        // Validate download URL
+        if (!templateFile.download_url || typeof templateFile.download_url !== 'string' || 
+            !templateFile.download_url.startsWith('https://')) {
+          throw new Error('Invalid download URL for template file');
+        }
+        
+        // Fetch the file content with a timeout
+        const contentResponse = await axios.get(templateFile.download_url, { 
+          headers: this.getHeaders(),
+          timeout: 10000
+        });
+        
         const content = contentResponse.data;
         
         // Extract directory name as the template name
@@ -245,7 +298,10 @@ export class GithubService {
           name,
           description,
           category,
-          content: typeof content === 'string' ? content : JSON.stringify(content)
+          content: typeof content === 'string' ? 
+            // Sanitize content by handling potentially harmful content
+            content.replace(/[^\x09\x0A\x0D\x20-\uFFFF]/g, '') : 
+            JSON.stringify(content)
         };
         
         // Cache the template
@@ -263,6 +319,7 @@ export class GithubService {
           name,
           description: directory.description || `Template for ${name}`,
           category: directory.category || 'GitHub Templates',
+          // Provide a simple, safe template content
           content: `# ${name}\n\nTemplate content`
         };
         
@@ -272,192 +329,8 @@ export class GithubService {
       }
     } catch (error) {
       console.error(`Error fetching template from directory ${directory.name}:`, error);
-      vscode.window.showErrorMessage(`Failed to fetch template from ${directory.name}: ${error}`);
+      vscode.window.showErrorMessage(`Failed to fetch template from ${directory.name}: ${error instanceof Error ? error.message : String(error)}`);
       return undefined;
     }
-  }
-  
-  /**
-   * Fetches templates from a GitHub repository
-   */
-  async fetchTemplates(repo: string): Promise<Template[]> {
-    if (this.cache.has(repo)) {
-      return this.cache.get(repo)!;
-    }
-    
-    try {
-      // Parse repo URL to extract owner, repo name, and path
-      const { owner, repoName, path: repoPath } = this.parseRepoUrl(repo);
-      console.log(`Parsed GitHub URL: owner=${owner}, repo=${repoName}, path=${repoPath}`);
-      
-      // Build the API URL with path if provided
-      const apiUrl = `https://api.github.com/repos/${owner}/${repoName}/contents${repoPath ? '/' + repoPath : ''}`;
-      console.log(`GitHub API URL: ${apiUrl}`);
-      
-      // Fetch repository contents
-      console.log(`Fetching contents from GitHub API...`);
-      const response = await axios.get(apiUrl, { headers: this.getHeaders() });
-      console.log(`Received ${response.data.length} items from GitHub API`);
-      
-      const templates: Template[] = [];
-      
-      // Process repository contents
-      for (const item of response.data) {
-        // Handle directories - treat directories as template files themselves
-        if (item.type === 'dir') {
-          console.log(`Processing directory: ${item.name}`);
-          
-          try {
-            // Try to fetch the README.md or any .cursorrules file from the directory
-            const dirContentsUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${item.path}`;
-            const dirResponse = await axios.get(dirContentsUrl, { headers: this.getHeaders() });
-            
-            // Look for a README.md or .cursorrules file in the directory
-            const readmeFile = dirResponse.data.find((file: any) => 
-              file.type === 'file' && (file.name === 'README.md' || file.name.endsWith('.cursorrules'))
-            );
-            
-            if (readmeFile) {
-              console.log(`Found template file in directory: ${readmeFile.name}`);
-              const contentResponse = await axios.get(readmeFile.download_url, { headers: this.getHeaders() });
-              const content = contentResponse.data;
-              
-              // Extract directory name as the template name
-              let name = item.name.replace(/-/g, ' ').replace(/cursorrules-prompt-file$/, '').trim();
-              let description = `Template for ${name}`;
-              let category = 'GitHub Templates';
-              
-              // Simple metadata extraction if available
-              if (typeof content === 'string') {
-                const nameMatch = content.match(/name:\s*(.+)/i);
-                if (nameMatch) {
-                  name = nameMatch[1].trim();
-                }
-                
-                const descMatch = content.match(/description:\s*(.+)/i);
-                if (descMatch) {
-                  description = descMatch[1].trim();
-                }
-                
-                const catMatch = content.match(/category:\s*(.+)/i);
-                if (catMatch) {
-                  category = catMatch[1].trim();
-                }
-                
-                console.log(`Extracted metadata: name=${name}, category=${category}`);
-              }
-              
-              templates.push({
-                name,
-                description,
-                category,
-                content: typeof content === 'string' ? content : JSON.stringify(content)
-              });
-            } else {
-              // If no README.md or .cursorrules file, use the directory name as a template
-              console.log(`No template file found in directory, using directory name: ${item.name}`);
-              
-              // Clean up the name
-              const name = item.name.replace(/-/g, ' ').replace(/cursorrules-prompt-file$/, '').trim();
-              
-              templates.push({
-                name: name.charAt(0).toUpperCase() + name.slice(1),
-                description: `Template for ${name}`,
-                category: 'GitHub Templates',
-                content: `# ${name}\n\nTemplate content`
-              });
-            }
-          } catch (error) {
-            console.error(`Error processing directory ${item.name}:`, error);
-          }
-        }
-        // Handle direct files
-        else if (item.type === 'file' && (
-            item.name.endsWith('.cursorrules') || 
-            item.name.endsWith('.md')
-          )) {
-          console.log(`Processing file: ${item.name}, download URL: ${item.download_url}`);
-          
-          const contentResponse = await axios.get(item.download_url, { headers: this.getHeaders() });
-          const content = contentResponse.data;
-          
-          // Extract metadata if available
-          let name = path.basename(item.name, path.extname(item.name));
-          let description = `Template for ${name}`;
-          let category = 'General';
-          
-          // Simple metadata extraction - could be enhanced
-          if (typeof content === 'string') {
-            const nameMatch = content.match(/name:\s*(.+)/i);
-            if (nameMatch) {
-              name = nameMatch[1].trim();
-            }
-            
-            const descMatch = content.match(/description:\s*(.+)/i);
-            if (descMatch) {
-              description = descMatch[1].trim();
-            }
-            
-            const catMatch = content.match(/category:\s*(.+)/i);
-            if (catMatch) {
-              category = catMatch[1].trim();
-            }
-            
-            console.log(`Extracted metadata: name=${name}, category=${category}`);
-          }
-          
-          templates.push({
-            name,
-            description,
-            category,
-            content: typeof content === 'string' ? content : JSON.stringify(content)
-          });
-        }
-      }
-      
-      console.log(`Total templates found: ${templates.length}`);
-      this.cache.set(repo, templates);
-      return templates;
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-      if (axios.isAxiosError(error)) {
-        console.error('Axios error details:', {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          responseData: error.response?.data
-        });
-      }
-      vscode.window.showErrorMessage(`Failed to fetch templates: ${error}`);
-      return [];
-    }
-  }
-
-  /**
-   * Gets templates grouped by category
-   */
-  async getTemplatesByCategory(repo: string): Promise<Map<string, Template[]>> {
-    const templates = await this.fetchTemplates(repo);
-    const categorized = new Map<string, Template[]>();
-    
-    for (const template of templates) {
-      if (!categorized.has(template.category)) {
-        categorized.set(template.category, []);
-      }
-      categorized.get(template.category)!.push(template);
-    }
-    
-    return categorized;
-  }
-
-  /**
-   * Clears the rate limit status and caches
-   * This can be called after the user adds a token
-   */
-  clearRateLimitStatus(): void {
-    this.isRateLimited = false;
-    this.directoriesCache.clear();
-    this.templateCache.clear();
-    this.cache.clear();
-    console.log('GitHub service caches and rate limit status cleared');
   }
 } 

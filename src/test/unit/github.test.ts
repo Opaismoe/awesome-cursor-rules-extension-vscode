@@ -19,77 +19,39 @@ suite('GitHub Service Tests', () => {
     axiosGetStub.restore();
   });
   
-  test('fetchTemplates should correctly parse repository path with tree/main/rules', async () => {
-    // Setup the first API response (repository contents)
-    const contentsResponse = {
-      data: [
-        {
-          type: 'file',
-          name: 'example.cursorrules',
-          download_url: 'https://raw.githubusercontent.com/user/repo/main/rules/example.cursorrules'
-        }
-      ]
-    };
+  test('parseRepoUrl should correctly parse repository path with tree/main/rules', async () => {
+    // We now test the parseRepoUrl method directly with reflection since it's private
+    const parseRepoUrl = (githubService as any).parseRepoUrl.bind(githubService);
     
-    // Setup the second API response (file content)
-    const contentResponse = {
-      data: 'name: Example Rule\ndescription: Example rule description\ncategory: Testing\n\nRule content here'
-    };
-    
-    // Configure the stub to return different responses based on the URL
-    axiosGetStub.withArgs('https://api.github.com/repos/PatrickJS/awesome-cursorrules/contents/rules')
-      .resolves(contentsResponse);
-    axiosGetStub.withArgs('https://raw.githubusercontent.com/user/repo/main/rules/example.cursorrules')
-      .resolves(contentResponse);
-      
-    // Test with the specific repository path
-    const templates = await githubService.fetchTemplates('https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules');
+    const result = parseRepoUrl('https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules');
     
     // Assertions
-    assert.strictEqual(templates.length, 1, 'Should return one template');
-    assert.strictEqual(templates[0].name, 'Example Rule', 'Should extract correct name');
-    assert.strictEqual(templates[0].description, 'Example rule description', 'Should extract correct description');
-    assert.strictEqual(templates[0].category, 'Testing', 'Should extract correct category');
-    assert.strictEqual(templates[0].content, contentResponse.data, 'Should have correct content');
-    
-    // Verify that axios.get was called with the correct URL including the path
-    assert.ok(axiosGetStub.calledWith('https://api.github.com/repos/PatrickJS/awesome-cursorrules/contents/rules'),
-      'Should call GitHub API with the correct path');
+    assert.strictEqual(result.owner, 'PatrickJS', 'Should extract correct owner');
+    assert.strictEqual(result.repoName, 'awesome-cursorrules', 'Should extract correct repo name');
+    assert.strictEqual(result.path, 'rules', 'Should extract correct path');
   });
   
-  test('getTemplatesByCategory should organize templates by category', async () => {
-    // Stub fetchTemplates to return predefined templates
-    const templates: Template[] = [
-      {
-        name: 'Template1',
-        description: 'Description1',
-        category: 'Category1',
-        content: 'Content1'
-      },
-      {
-        name: 'Template2',
-        description: 'Description2',
-        category: 'Category2',
-        content: 'Content2'
-      },
-      {
-        name: 'Template3',
-        description: 'Description3',
-        category: 'Category1',
-        content: 'Content3'
-      }
-    ];
+  test('parseRepoUrl should handle invalid inputs', async () => {
+    // We test the parseRepoUrl method for security handling
+    const parseRepoUrl = (githubService as any).parseRepoUrl.bind(githubService);
     
-    sinon.stub(githubService, 'fetchTemplates').resolves(templates);
+    // Test invalid URL
+    try {
+      parseRepoUrl('not-a-url');
+      assert.fail('Should have thrown an error for invalid URL');
+    } catch (error) {
+      assert.ok(error instanceof Error);
+      assert.ok((error as Error).message.includes('URL must be a valid GitHub repository URL'));
+    }
     
-    // Call the method
-    const categorized = await githubService.getTemplatesByCategory('https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules');
-    
-    // Assertions
-    assert.ok(categorized.has('Category1'), 'Should have Category1');
-    assert.ok(categorized.has('Category2'), 'Should have Category2');
-    assert.strictEqual(categorized.get('Category1')!.length, 2, 'Category1 should have 2 templates');
-    assert.strictEqual(categorized.get('Category2')!.length, 1, 'Category2 should have 1 template');
+    // Test empty input
+    try {
+      parseRepoUrl('');
+      assert.fail('Should have thrown an error for empty input');
+    } catch (error) {
+      assert.ok(error instanceof Error);
+      assert.ok((error as Error).message.includes('Invalid repository URL'));
+    }
   });
   
   test('fetchDirectories should return a list of directories without fetching content', async () => {
@@ -132,6 +94,23 @@ suite('GitHub Service Tests', () => {
       'Should call GitHub API with the correct path');
   });
   
+  test('fetchDirectories should handle invalid inputs', async () => {
+    // Test with invalid input
+    const directories = await githubService.fetchDirectories('');
+    assert.strictEqual(directories.length, 0, 'Should return empty array for invalid input');
+  });
+  
+  test('fetchDirectories should handle API errors', async () => {
+    // Setup the axios error
+    axiosGetStub.rejects(new Error('API error'));
+    
+    // Call the method
+    const directories = await githubService.fetchDirectories('https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules');
+    
+    // Should handle error and return empty array
+    assert.strictEqual(directories.length, 0, 'Should return empty array on error');
+  });
+  
   test('fetchRuleFromDirectory should fetch the content of a specific rule', async () => {
     // Setup the API response for directory contents
     const dirContentsResponse = {
@@ -150,8 +129,8 @@ suite('GitHub Service Tests', () => {
       data: 'name: React Template\ndescription: Template for React apps\ncategory: Frontend\n\nTemplate content here'
     };
     
-    // Configure stubs
-    axiosGetStub.withArgs('https://api.github.com/repos/PatrickJS/awesome-cursorrules/contents/rules/react-template-dir')
+    // Configure stubs - ensure we're using encoded URLs to match our implementation changes
+    axiosGetStub.withArgs('https://api.github.com/repos/PatrickJS/awesome-cursorrules/contents/rules%2Freact-template-dir')
       .resolves(dirContentsResponse);
     axiosGetStub.withArgs('https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/react-template-dir/README.md')
       .resolves(fileContentResponse);
@@ -160,7 +139,9 @@ suite('GitHub Service Tests', () => {
     const directory = {
       name: 'react-template-dir',
       path: 'rules/react-template-dir',
-      type: 'dir'
+      type: 'dir',
+      description: 'React templates',
+      category: 'Frontend'
     };
     
     const template = await githubService.fetchRuleFromDirectory(
@@ -173,5 +154,31 @@ suite('GitHub Service Tests', () => {
     assert.strictEqual(template.name, 'React Template', 'Should have correct name from content');
     assert.strictEqual(template.category, 'Frontend', 'Should have correct category from content');
     assert.strictEqual(template.content, fileContentResponse.data, 'Should have correct content');
+  });
+  
+  test('fetchRuleFromDirectory should handle invalid inputs', async () => {
+    // Test with invalid directory
+    const template = await githubService.fetchRuleFromDirectory('https://github.com/user/repo', null as any);
+    assert.strictEqual(template, undefined, 'Should return undefined for invalid directory');
+  });
+  
+  test('fetchRuleFromDirectory should handle API errors', async () => {
+    // Setup the axios error
+    axiosGetStub.rejects(new Error('API error'));
+    
+    // Call the method with valid inputs
+    const directory = {
+      name: 'template-dir',
+      path: 'rules/template-dir',
+      type: 'dir'
+    };
+    
+    const template = await githubService.fetchRuleFromDirectory(
+      'https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules',
+      directory
+    );
+    
+    // Should handle error and return undefined
+    assert.strictEqual(template, undefined, 'Should return undefined on error');
   });
 }); 
