@@ -12,7 +12,10 @@
   "activationEvents": [
     "onCommand:cursor-rules.create",
     "onCommand:cursor-rules.select",
-    "onCommand:cursor-rules.edit"
+    "onCommand:cursor-rules.edit",
+    "onCommand:cursor-rules.selectGithub",
+    "onCommand:cursor-rules.selectGithubCached",
+    "onCommand:cursor-rules.resetGithubRateLimit"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -28,6 +31,18 @@
       {
         "command": "cursor-rules.edit",
         "title": "Cursor Rules: Edit Existing Rule"
+      },
+      {
+        "command": "cursor-rules.selectGithub",
+        "title": "Cursor Rules: Select from GitHub Templates"
+      },
+      {
+        "command": "cursor-rules.selectGithubCached",
+        "title": "Cursor Rules: Select GitHub Templates (Faster)"
+      },
+      {
+        "command": "cursor-rules.resetGithubRateLimit",
+        "title": "Cursor Rules: Reset GitHub Rate Limit Status"
       }
     ],
     "configuration": {
@@ -44,6 +59,11 @@
           "type": "boolean",
           "default": true,
           "description": "Use .cursor/rules directory structure instead of .cursorrules file"
+        },
+        "cursorRules.githubToken": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub personal access token to increase API rate limits"
         }
       }
     }

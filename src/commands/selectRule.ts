@@ -20,10 +20,12 @@ export async function selectRuleCommand(context: vscode.ExtensionContext) {
       // First load local templates
       const localTemplateService = new LocalTemplateService();
       const localCategories = await localTemplateService.getTemplatesByCategory(context.extensionUri.fsPath);
+      console.log(`Loaded ${Array.from(localCategories.keys()).length} local template categories`);
       
       // Add local templates to the merged map
       for (const [category, templates] of localCategories.entries()) {
         mergedCategories.set(category, templates);
+        console.log(`Added local category: ${category} with ${templates.length} templates`);
       }
       
       // Then try to load GitHub templates if configured
@@ -32,28 +34,38 @@ export async function selectRuleCommand(context: vscode.ExtensionContext) {
         'https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules'
       ]);
       
+      console.log(`Found template sources: ${JSON.stringify(sources)}`);
+      
       if (sources.length > 0) {
         progress.report({ message: 'Fetching online templates...' });
         
         try {
           // For now, use the first source
           const source = sources[0];
+          console.log(`Fetching templates from: ${source}`);
+          
           const githubService = new GithubService();
           const onlineCategories = await githubService.getTemplatesByCategory(source);
+          console.log(`Loaded ${Array.from(onlineCategories.keys()).length} GitHub template categories`);
           
           // Merge GitHub templates with local templates
           for (const [category, templates] of onlineCategories.entries()) {
             if (mergedCategories.has(category)) {
+              console.log(`Merging GitHub category: ${category} with ${templates.length} templates`);
               mergedCategories.get(category)!.push(...templates);
             } else {
+              console.log(`Adding new GitHub category: ${category} with ${templates.length} templates`);
               mergedCategories.set(category, templates);
             }
           }
         } catch (error) {
           console.error('Error fetching online templates:', error);
+          vscode.window.showErrorMessage(`Error loading GitHub templates: ${error}`);
           // Continue with local templates if GitHub fails
         }
       }
+      
+      console.log(`Total merged categories: ${mergedCategories.size}`);
       
       if (mergedCategories.size === 0) {
         vscode.window.showInformationMessage('No templates found');
@@ -62,24 +74,33 @@ export async function selectRuleCommand(context: vscode.ExtensionContext) {
       
       // Show category quick pick
       const categories = Array.from(mergedCategories.keys());
+      console.log(`Available categories: ${categories.join(', ')}`);
+      
       const selectedCategory = await showCategoryQuickPick(categories);
       
       if (!selectedCategory) {
         return; // User cancelled
       }
       
+      console.log(`Selected category: ${selectedCategory}`);
+      
       // Show templates in selected category
       const templates = mergedCategories.get(selectedCategory) || [];
+      console.log(`Templates in category: ${templates.length}`);
+      
       const selectedTemplate = await showTemplateQuickPick(templates);
       
       if (!selectedTemplate) {
         return; // User cancelled
       }
       
+      console.log(`Selected template: ${selectedTemplate.name}`);
+      
       // Open the template in the editor
       RuleEditorPanel.createOrShow(context.extensionUri, selectedTemplate);
       
     } catch (error) {
+      console.error('Error in selectRuleCommand:', error);
       vscode.window.showErrorMessage(`Error loading templates: ${error}`);
     }
   });

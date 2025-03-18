@@ -8,4 +8,12 @@ export interface Template {
 export interface Rule {
   name: string;
   content: string;
+}
+
+export interface GitHubDirectory {
+  name: string;
+  path: string;
+  type: string;
+  description?: string;
+  category?: string;
 } 
