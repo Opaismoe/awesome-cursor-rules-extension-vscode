@@ -3,11 +3,40 @@
   "displayName": "Cursor Rules Manager",
   "description": "Quickly create and manage CursorRules for the Cursor editor",
   "version": "0.1.0",
+  "publisher": "Opaismoe",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Opaismoe/awesome-cursor-rules-extension-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/Opaismoe/awesome-cursor-rules-extension-vscode/issues"
+  },
+  "homepage": "https://github.com/Opaismoe/awesome-cursor-rules-extension-vscode#readme",
   "engines": {
     "vscode": "^1.60.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Snippets",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "cursor",
+    "ai",
+    "rules",
+    "cursorrules",
+    "templates"
+  ],
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#C80000",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onCommand:cursor-rules.create",
+    "onCommand:cursor-rules.select",
+    "onCommand:cursor-rules.edit",
+    "onCommand:cursor-rules.selectGithubFast"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -59,14 +88,8 @@
     "pretest": "npm run compile",
     "test": "node ./out/test/runTest.js"
   },
-  "keywords": [
-    "cursor",
-    "ai",
-    "rules",
-    "cursorrules"
-  ],
-  "author": "",
-  "license": "MIT",
+  "author": "Opaismoe",
+  "license": "CC0-1.0",
   "dependencies": {
     "axios": "^1.6.7"
   },

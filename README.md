@@ -1,110 +1,117 @@
-# Cursor Rules Manager
+# Awesome Cursor Rules Extension
 
-A VSCode extension to quickly create and manage CursorRules for the Cursor AI code editor.
+[![License: CC0-1.0](https://img.shields.io/badge/License-CC0_1.0-lightgrey.svg)](http://creativecommons.org/publicdomain/zero/1.0/)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue.svg)](https://marketplace.visualstudio.com/items?itemName=Opaismoe.awesome-cursor-rules)
+
+A VS Code extension for managing Cursor Rules with seamless integration with the [Awesome Cursor Rules](https://github.com/PatrickJS/awesome-cursorrules) repository.
 
 ## Features
 
-- Create new CursorRules files from scratch
-- Select from community templates organized by category
-- Edit existing rule files in your workspace
-- Support for both `.cursorrules` file and `.cursor/rules/` directory structure
+- 🚀 **Fast Template Selection**: Quickly browse and select from curated Cursor Rules templates
+- 📝 **Create New Rules**: Create custom Cursor Rules with an intuitive interface
+- 🔄 **Edit Existing Rules**: Easily modify your existing rules
+- 🌐 **GitHub Integration**: Direct access to the Awesome Cursor Rules repository
+- 💾 **Local Storage**: Store rules locally in `.cursor/rules` directory
 
-## What are CursorRules?
+## Installation
 
-CursorRules are custom instructions for the AI assistant in the Cursor editor, guiding its behavior when interpreting code, generating suggestions, and responding to queries. They help you tailor the AI's behavior to match your coding style and project requirements.
+1. Open VS Code
+2. Go to Extensions (Ctrl+Shift+X / Cmd+Shift+X)
+3. Search for "Awesome Cursor Rules"
+4. Click Install
 
-There are two types of CursorRules:
-1. Global Rules: Set in Cursor Settings
-2. Project-Specific Rules: Defined in a `.cursorrules` file or `.cursor/rules/` directory
+## Commands
+
+The extension provides the following commands:
+
+- `ACR: Create New Rule` - Create a new Cursor Rule from scratch
+- `ACR: Select from Templates` - Choose from local templates
+- `ACR: Edit Existing Rule` - Modify an existing rule
+- `ACR: Select from Awesome Cursor Rules Repository` - Browse and select from the official repository
+
+## Configuration
+
+The extension can be configured through VS Code settings:
+
+```json
+{
+  "cursorRules.templateSources": [
+    "https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules"
+  ],
+  "cursorRules.useDirectoryStructure": true,
+  "cursorRules.githubToken": ""
+}
+```
+
+- `templateSources`: GitHub repositories to fetch rule templates from
+- `useDirectoryStructure`: Use `.cursor/rules` directory structure (recommended)
+- `githubToken`: GitHub personal access token for increased API rate limits
+
+## GitHub Token Setup
+
+To avoid API rate limits, you can add a GitHub personal access token:
+
+1. Go to [GitHub Settings > Developer Settings > Personal Access Tokens](https://github.com/settings/tokens)
+2. Generate a new token with `repo` scope
+3. Copy the token
+4. Add it to VS Code settings under `cursorRules.githubToken`
 
 ## Usage
 
-### Creating a New Rule
+1. **Creating a New Rule**:
+   - Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
+   - Type "ACR: Create New Rule"
+   - Follow the prompts to create your rule
 
-1. Open the Command Palette (Ctrl+Shift+P)
-2. Type "Cursor Rules: Create New Rule"
-3. Edit the rule in the editor that appears
-4. Click "Save Rule" to save it to your workspace
+2. **Using Templates**:
+   - Open Command Palette
+   - Type "ACR: Select from Templates"
+   - Choose a template to use as a starting point
 
-### Selecting from Templates
+3. **Browsing Awesome Cursor Rules**:
+   - Open Command Palette
+   - Type "ACR: Select from Awesome Cursor Rules Repository"
+   - Browse and select from available templates
 
-1. Open the Command Palette (Ctrl+Shift+P)
-2. Type "Cursor Rules: Select from Templates"
-3. Choose a template category (Framework, Language, Style, etc.)
-4. Select a specific template
-5. Customize it in the editor that appears
-6. Click "Save Rule" to save it to your workspace
-
-### Editing Existing Rules
-
-1. Open the Command Palette (Ctrl+Shift+P)
-2. Type "Cursor Rules: Edit Existing Rule"
-3. Select the rule you want to edit
-4. Make your changes in the editor
-5. Click "Save Rule" to update it
-
-## Extension Settings
-
-This extension contributes the following settings:
-
-* `cursorRules.templateSources`: GitHub repositories to fetch rule templates from
-* `cursorRules.useDirectoryStructure`: Use `.cursor/rules` directory structure instead of `.cursorrules` file
-
-## Template Format
-
-Templates use a simple Markdown format with YAML frontmatter:
-
-```md
----
-name: Template Name
-description: Brief description of the template
-category: Template Category
----
-
-# Template Content
-
-Your rule content here...
-```
+4. **Editing Rules**:
+   - Open Command Palette
+   - Type "ACR: Edit Existing Rule"
+   - Select the rule you want to modify
 
 ## Contributing
 
-Contributions are welcome! Feel free to submit pull requests with new templates or features.
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
-## License
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-This extension is licensed under the MIT License. 
+## Development
 
-## Testing
-
-This extension includes a comprehensive testing setup:
-
-### Running Tests
+To set up the development environment:
 
 ```bash
+# Clone the repository
+git clone https://github.com/Opaismoe/awesome-cursor-rules-extension-vscode.git
+cd awesome-cursor-rules-extension-vscode
+
 # Install dependencies
 npm install
 
-# Compile the extension and tests
+# Compile
 npm run compile
 
-# Run the tests
-npm test
+# Watch for changes
+npm run watch
 ```
 
-### Test Structure
+## License
 
-- **Unit tests**: Test individual components in isolation
-  - Located in `src/test/unit/`
-  - Mock VS Code API and external dependencies
+This project is licensed under the CC0-1.0 License - see the [LICENSE](LICENSE) file for details.
 
-- **Extension tests**: Test the extension in a VS Code environment
-  - Located in `src/test/suite/`
-  - Run within an actual VS Code instance
+## Acknowledgments
 
-### Continuous Integration
-
-Tests automatically run on GitHub Actions when:
-- Code is pushed to the main branch
-- A pull request is created against the main branch
-
-See the `.github/workflows/tests.yml` file for details. 
+- [Awesome Cursor Rules Repository](https://github.com/PatrickJS/awesome-cursorrules) for providing the template collection
+- All contributors who have helped to build and maintain this extension 
