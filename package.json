@@ -82,11 +82,13 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile",
-    "test": "node ./out/test/runTest.js"
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "test-compile": "tsc -p ./",
+    "test": "node ./out/test/runTest.js",
+    "pretest": "npm run test-compile"
   },
   "author": "Opaismoe",
   "license": "CC0-1.0",
@@ -103,6 +105,9 @@
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
     "sinon": "^15.0.1",
-    "typescript": "^5.3.3"
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.3.3",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
   }
 }

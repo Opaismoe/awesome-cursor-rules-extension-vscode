@@ -29,47 +29,47 @@ export async function selectRuleCommand(context: vscode.ExtensionContext) {
       }
       
       // Then try to load GitHub templates if configured
-      const config = vscode.workspace.getConfiguration('cursorRules');
-      const sources = config.get<string[]>('templateSources', [
-        'https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules'
-      ]);
+      // const config = vscode.workspace.getConfiguration('cursorRules');
+      // const sources = config.get<string[]>('templateSources', [
+      //   'https://github.com/PatrickJS/awesome-cursorrules/tree/main/rules'
+      // ]);
       
-      console.log(`Found template sources: ${JSON.stringify(sources)}`);
+      // console.log(`Found template sources: ${JSON.stringify(sources)}`);
       
-      if (sources.length > 0) {
-        progress.report({ message: 'Fetching online templates...' });
+      // if (sources.length > 0) {
+      //   progress.report({ message: 'Fetching online templates...' });
         
-        try {
-          // For now, use the first source
-          const source = sources[0];
-          console.log(`Fetching directories from: ${source}`);
+      //   try {
+      //     // For now, use the first source
+      //     const source = sources[0];
+      //     console.log(`Fetching directories from: ${source}`);
           
-          const githubService = new GithubService();
-          // Use the directory-based approach
-          const directories = await githubService.fetchDirectories(source);
-          console.log(`Loaded ${directories.length} GitHub directories`);
+      //     const githubService = new GithubService();
+      //     // Use the directory-based approach
+      //     const directories = await githubService.fetchDirectories(source);
+      //     console.log(`Loaded ${directories.length} GitHub directories`);
           
-          // Process each directory to load its template
-          for (const dir of directories) {
-            const template = await githubService.fetchRuleFromDirectory(source, dir);
-            if (template) {
-              if (mergedCategories.has(template.category)) {
-                console.log(`Adding template to existing category: ${template.category}`);
-                mergedCategories.get(template.category)!.push(template);
-              } else {
-                console.log(`Creating new category: ${template.category} for template`);
-                mergedCategories.set(template.category, [template]);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching online templates:', error);
-          vscode.window.showErrorMessage(`Error loading GitHub templates: ${error}`);
-          // Continue with local templates if GitHub fails
-        }
-      }
+      //     // Process each directory to load its template
+      //     for (const dir of directories) {
+      //       const template = await githubService.fetchRuleFromDirectory(source, dir);
+      //       if (template) {
+      //         if (mergedCategories.has(template.category)) {
+      //           console.log(`Adding template to existing category: ${template.category}`);
+      //           mergedCategories.get(template.category)!.push(template);
+      //         } else {
+      //           console.log(`Creating new category: ${template.category} for template`);
+      //           mergedCategories.set(template.category, [template]);
+      //         }
+      //       }
+      //     }
+      //   } catch (error) {
+      //     console.error('Error fetching online templates:', error);
+      //     vscode.window.showErrorMessage(`Error loading GitHub templates: ${error}`);
+      //     // Continue with local templates if GitHub fails
+      //   }
+      // }
       
-      console.log(`Total merged categories: ${mergedCategories.size}`);
+      // console.log(`Total merged categories: ${mergedCategories.size}`);
       
       if (mergedCategories.size === 0) {
         vscode.window.showInformationMessage('No templates found');
