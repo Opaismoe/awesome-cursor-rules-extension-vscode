@@ -12,6 +12,8 @@ A VS Code extension for managing Cursor Rules with seamless integration with the
 - 🔄 **Edit Existing Rules**: Easily modify your existing rules
 - 🌐 **GitHub Integration**: Direct access to the Awesome Cursor Rules repository
 - 💾 **Local Storage**: Store rules locally in `.cursor/rules` directory
+- ⚡ **Optimized Bundle**: Webpack-bundled for optimal performance
+- 🎯 **Minimal Footprint**: Smart file exclusion for reduced package size
 
 ## Installation
 
@@ -100,11 +102,35 @@ cd awesome-cursor-rules-extension-vscode
 # Install dependencies
 npm install
 
-# Compile
-npm run compile
-
-# Watch for changes
+# Development compilation with watch mode
 npm run watch
+
+# Production build with webpack bundling
+npm run package
+
+# Run tests
+npm run test
+```
+
+### Build Process
+
+The extension uses webpack for bundling, which:
+- Combines all TypeScript/JavaScript files into a single bundle
+- Minimizes the bundle size for optimal performance
+- Generates source maps for debugging
+- Excludes unnecessary files via `.vscodeignore`
+
+### Testing
+
+The project includes comprehensive tests for:
+- Bundle configuration validation
+- File exclusion verification
+- Core functionality testing
+- GitHub integration testing
+
+Run tests with:
+```bash
+npm run test
 ```
 
 ## License
